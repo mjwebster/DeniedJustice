@@ -1,0 +1,511 @@
+---
+title: "Star Tribune analysis of Minnesota sexual assault investigations"
+author: "MaryJo Webster, Brandon Stahl, Jennifer Bjorhus"
+date:  "Last updated: `r Sys.Date()`"
+output:
+  html_document: 
+    #toc: true
+    #to_depth: 1
+    #toc_float: true
+    theme: flatly
+---
+
+```{r setup1, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE, fig.height = 3, fig.width = 8)
+
+#URL FOR THIS PAGE: http://strib-data-public.s3-us-west-1.amazonaws.com/projects/rape/highlights.html
+
+```
+```{r, code=readLines("load_clean_data.R"), echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+#Cases reviewed
+
+<p>The Star Tribune requested, from 20 law enforcement agencies statewide, investigative reports on rapes reported in 2015 and 2016. We have about half the cases we expected and are waiting on the others. Below is a breakdown of the cases we've reviewed from Minneapolis, St. Paul and the other agencies, so far.</p>
+```{r}
+rape %>%
+  group_by(department_collapse) %>%
+  summarise(Number_cases=n()) %>%
+  arrange(desc(Number_cases)) %>%
+  rename(dept=department_collapse)%>%
+  adorn_totals("row") %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+
+
+
+```
+<br>
+
+#Analysis results
+
+
+
+```{r}
+
+
+investigate <- rape %>% group_by(investigatorsassigned) %>%
+  summarise(count=n()) %>% 
+	mutate(pct = count/sum(count)) %>% 
+  filter(investigatorsassigned=="Yes" | investigatorsassigned=="No")
+
+
+investigate_chart <- 	ggplot(investigate, aes(x = investigatorsassigned, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((investigate$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Percentage of cases assigned to investigator",
+       x=NULL,
+       y=NULL)
+
+plot(investigate_chart)
+```
+
+
+
+
+
+##Percent of cases sent for prosecution
+
+```{r}
+
+
+
+buckets <- rape %>% group_by(group2) %>%
+  summarise(count=n()) %>% 
+	mutate(pct = count/sum(count)) %>% 
+  filter(group2!="NA")
+
+
+buckets_chart <- 	ggplot(buckets, aes(x = group2, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((buckets$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = NULL,
+       x=NULL,
+       y=NULL)
+
+plot(buckets_chart)
+
+
+```
+
+<br>
+<br>
+
+##Percent of cases where charges were filed
+<br>
+<br>
+```{r}
+
+charges <-  rape %>% group_by( chargesfiled) %>% summarise(count=n()) %>% 
+	mutate(pct = (count/sum(count))) %>%  
+filter(chargesfiled=="Yes" | chargesfiled=="No"| chargesfiled=="Cannot determine")
+
+charges_chart <- 	ggplot(charges, aes(x = chargesfiled, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((charges$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = NULL,
+       x=NULL,
+       y=NULL)
+
+plot(charges_chart)
+```
+
+<br>
+
+<br>
+
+##Percent of cases resulting in conviction
+<p>Less than 1 in 10 of the cases we reviewed resulted in conviction.</p>
+```{r}
+
+
+
+
+convict <-  rape %>% group_by( conviction) %>% summarise(count=n()) %>% 
+	mutate(pct = (count/sum(count))) %>% 
+  filter(conviction=="Yes" | conviction=="No"| conviction=="Cannot determine")
+
+convict_chart <- 	ggplot(convict, aes(x = conviction, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((convict$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = NULL,
+       x=NULL,
+       y=NULL)
+
+plot(convict_chart)
+
+
+```
+<br>
+<br>
+<hr>
+
+#Case investigations
+<p>The charts below look at how often investigators took basic policing steps in the cases we reviewed.</p>
+<br>
+<p>A recommended best practice is for investigators to conduct a more thorough interview after the victim makes an initial report to the officer responding to the initial call.</p>
+
+```{r}
+
+
+
+#int <-  rape %>% group_by(victim_interview_combine) %>% summarise(count=n()) %>% mutate(pct = (count/sum(count))) %>% 
+#  filter(victim_interview_combine=="No/Attempted"| victim_interview_combine=="Yes")
+
+
+#int_chart <- 	ggplot(int, aes(x = victim_interview_combine, y = pct)) +
+#	geom_col(color="#556E7F", fill="#556E7F") +
+ # coord_flip()+
+#  geom_text(stat="identity", nudge_x=0, nudge_y=-.15,label=paste0(int$victim_interview_combine,": ",round((int$pct)*100,0),"%"))+
+#	scale_y_continuous(labels = percent, limits=c(0,1))+
+#  theme_hc()+
+#  theme(axis.text.y=element_blank())+
+#  labs(title = "Did investigators conduct a forensic interview with victim?",
+#       x=NULL,
+#       y=NULL)
+
+
+int <-  rape %>% group_by(victiminterviewed) %>% summarise(count=n()) %>% mutate(pct = (count/sum(count))) %>% 
+  filter(victiminterviewed=="No" | victiminterviewed=="Yes" | victiminterviewed=="Attempted")
+
+
+int_chart <- 	ggplot(int, aes(x = victiminterviewed, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.05,label=paste0(round((int$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview the victim?",
+       x=NULL,
+       y=NULL)
+
+plot(int_chart)
+
+```
+
+
+
+
+
+
+<br>
+<br>
+
+<p>About 70% of the cases we reviewed listed one or more suspect names in the report, yet investigators failed to interview that person more often than not.</p>
+```{r}
+
+
+int_suspect <-  rape %>% filter(suspectflag=="Named suspect") %>% group_by(suspectinterviewed) %>% summarise(count=n()) %>% mutate(pct = (count/sum(count))) %>% 
+  filter(suspectinterviewed=="No"| suspectinterviewed=="Yes" | suspectinterviewed=="Attempted")
+
+
+
+int_suspect_chart <- 	ggplot(int_suspect, aes(x = suspectinterviewed, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.03,label=paste0(round((int_suspect$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+   #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview a named suspect?",
+       subtitle="Only cases with named suspect",
+       x=NULL,
+       y=NULL)
+
+plot(int_suspect_chart)
+```
+
+<br>
+<br>
+
+<p>When reviewing cases, we looked for indications of evidence that could've been collected but there was no documentation in the report that it was. This might have included DNA, clothing or bed sheets, surveillance video or cell phone data.</p>
+```{r}
+
+
+
+evidence <-  rape %>% filter(delay=="no delay") %>% group_by(evidence2) %>% summarise(count=n()) %>% 	mutate(pct = (count/sum(count)))
+
+
+evidence_chart <- 	ggplot(evidence, aes(x = evidence2, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.05,label=paste0(round((evidence$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+     #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators collect all potential evidence?",
+       subtitle="Only cases with no reporting delay",
+       x=NULL,
+       y=NULL)
+
+plot(evidence_chart)
+```
+
+<br>
+<br>
+
+
+```{r}
+
+
+
+
+witness <-  rape  %>% group_by(witness2) %>% summarise(count=n()) %>% 	mutate(pct = (count/sum(count))) %>% filter(witness2=="Not all witnesses interviewed" | witness2=="All witnesses interviewed")
+
+
+witness_chart <- 	ggplot(witness, aes(x = witness2, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.05,label=paste0(round((witness$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+      #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview all potential witnesses?",
+             x=NULL,
+       y=NULL)
+
+plot(witness_chart)
+```
+<br>
+<br>
+<hr>
+
+#Cases not sent for prosecution
+<p>The Star Tribune wanted to understand what went wrong with the 3 out of 4 cases that were never sent to prosecutors. Looking at just those cases, we found police were even less likely to take the most basic investigatory steps.</p>
+<br>
+
+```{r}
+int_np <-  rape %>% group_by(group2, victiminterviewed) %>% summarise(count=n())
+
+int_np <-  int_np %>% mutate(pct = (count/sum(count))) %>% 
+  filter(victiminterviewed=="No"| victiminterviewed=="Yes" | victiminterviewed=="Attempted" , group2=="Not sent for prosecution")
+
+
+int_np_chart <- 	ggplot(int_np, aes(x = victiminterviewed, y = pct)) +
+	geom_col(color="#A8B9C5", fill="#A8B9C5") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.05,label=paste0(round((int_np$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+ # theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview the victim?",
+       subtitle="Cases not sent to prosecutors",
+       x=NULL,
+       y=NULL)
+
+plot(int_np_chart)
+
+```
+<br>
+<br>
+
+```{r}
+
+int_suspect_np <-  rape %>% filter(suspectflag=="Named suspect") %>% group_by(group2, suspectinterviewed) %>% summarise(count=n())
+
+int_suspect_np <-  int_suspect_np %>% mutate(pct = (count/sum(count))) %>% 
+  filter(suspectinterviewed=="No"| suspectinterviewed=="Yes" | suspectinterviewed=="Attempted", group2=="Not sent for prosecution")
+
+
+
+int_suspect_np_chart <- 	ggplot(int_suspect_np, aes(x = suspectinterviewed, y = pct)) +
+	geom_col(color="#A8B9C5", fill="#A8B9C5") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.025,label=paste0(round((int_suspect_np$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+   #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview a named suspect?",
+       subtitle="Cases not sent to prosecutors",
+       x=NULL,
+       y=NULL)
+
+plot(int_suspect_np_chart)
+```
+
+<br>
+<br>
+
+```{r}
+evidence_np <-  rape %>% filter(delay=="no delay") %>% group_by(group2, evidence2) %>% summarise(count=n()) 
+  
+  evidence_np <-  evidence_np %>% mutate(pct = (count/sum(count)))	%>%
+	filter(group2=="Not sent for prosecution")
+
+
+evidence_np_chart <- 	ggplot(evidence_np, aes(x = evidence2, y = pct)) +
+	geom_col(color="#A8B9C5", fill="#A8B9C5") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.05,label=paste0(round((evidence_np$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+     #theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators collect all potential evidence?",
+       subtitle="Cases not sent to prosecutors; no reporting delay",
+       x=NULL,
+       y=NULL)
+
+plot(evidence_np_chart)
+```
+
+<br>
+<br>
+
+```{r}
+witness_np <-  rape  %>% group_by(group2, witness2) %>% summarise(count=n()) 
+
+witness_np <-  witness_np %>% 	mutate(pct = (count/sum(count))) %>% 
+filter(witness2=="Not all witnesses interviewed" | witness2=="All witnesses interviewed", group2=="Not sent for prosecution")
+
+
+witness_np_chart <- 	ggplot(witness_np, aes(x = witness2, y = pct)) +
+	geom_col(color="#A8B9C5", fill="#A8B9C5") +
+  coord_flip()+
+  geom_text(stat="identity", nudge_x=0, nudge_y=-.1,label=paste0(round((witness_np$pct)*100,0),"%"))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+     # theme(axis.text.y=element_blank())+
+  labs(title = "Did investigators interview all potential witnesses?",
+       subtitle="Cases not sent to prosecutors",
+             x=NULL,
+       y=NULL)
+
+plot(witness_np_chart)
+```
+<br>
+<br>
+<hr>
+
+
+#Victim involvement
+
+<p>About one-third of victims either choose to no longer cooperate in an investigation or police are unable to reach them later in the investigation.</p>
+<br>
+```{r}
+involve <-  rape %>% 
+  group_by(victiminvolve) %>%
+  summarise(count=n()) %>% 
+  mutate(pct = (count/sum(count)))
+
+
+
+involve_chart <- 	ggplot(involve, aes(x = victiminvolve, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((involve$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Victim involvement",
+       x=NULL,
+       y=NULL)
+
+plot(involve_chart)
+```
+
+
+<br>
+<br>
+
+<p>When a victim stays involved in the investigation, the case is far more likely to be sent to prosecutors.</p>
+```{r}
+involve_prosecution <-  rape %>% 
+  group_by(group2, victiminvolve) %>%
+  summarise(count=n()) 
+
+
+involve_prosecution <-involve_prosecution %>% group_by(victiminvolve) %>% 
+  mutate(pct = (count/sum(count))) %>% 
+    filter(group2=="Sent for prosecution")
+
+involve_prosecution <-  involve_prosecution %>% filter(victiminvolve=="Withdrew at some point" | victiminvolve=="Cooperated throughout")
+
+
+involve_prosecution_chart <- 	ggplot(involve_prosecution, aes(x = victiminvolve, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((involve_prosecution$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Percent sent for prosecution",
+       subtitle="By victim involvement",
+       x=NULL,
+       y=NULL)
+
+plot(involve_prosecution_chart)
+```
+
+<br>
+<br>
+
+<p>And we've only found 1 case that resulted in a conviction after the victim dropped out.</p>
+```{r}
+involve_conviction <-  rape %>% 
+  group_by(conviction, victiminvolve) %>%
+  summarise(count=n()) 
+
+
+involve_conviction <-involve_conviction %>% group_by(victiminvolve) %>% 
+  mutate(pct = (count/sum(count))) %>% 
+    filter(conviction=="Yes")
+
+involve_conviction <-  involve_conviction %>% filter(victiminvolve=="Withdrew at some point" | victiminvolve=="Cooperated throughout")
+
+
+involve_conviction_chart <- 	ggplot(involve_conviction, aes(x = victiminvolve, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((involve_conviction$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Share of cases resulting in conviction",
+       subtitle="By victim involvement",
+       x=NULL,
+       y=NULL)
+
+plot(involve_conviction_chart)
+
+
+```
+
+
+```{r movetoS3, eval=FALSE, echo=FALSE, results="hide"}
+
+
+#rmarkdown::render("highlights.Rmd")
+
+
+# specify keys as environment variables
+library(aws.s3)
+Sys.setenv("AWS_ACCESS_KEY_ID" =  rstudioapi::askForPassword("AWS_ACCESS_KEY_ID"),
+
+           "AWS_SECRET_ACCESS_KEY" = rstudioapi::askForPassword("AWS_SECRET_ACCESS_KEY"))
+
+get_bucket("strib-data-public")
+
+
+put_object(file = "highlights.html", object = "projects/rape/highlights.html", bucket = "strib-data-public")
+
+put_object(file = "highlights.html", object = "projects/rape/highlights.html", bucket = "strib-data-public", acl=c("public-read"))
+
+
+
+
+
+
+
+
+```
