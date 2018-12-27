@@ -1,0 +1,287 @@
+---
+title: "Regression analysis"
+author: "MaryJo Webster"
+date:  "Last updated: `r Sys.Date()`"
+output:
+  html_document: 
+    toc: true
+    to_depth: 1
+    toc_float: true
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE, fig.height = 3, fig.width = 8)
+
+
+```
+
+
+```{r, code=readLines("load_clean_data.R"), echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+
+
+```{r}
+#I had help on this from Christina Knudson, a stats professor at St. Thomas
+#she works in R
+
+
+#clean up data
+#eliminate records where "sent for prosecution" is unknown
+#eliminate records where all of the key independent variable fields are unknown 
+
+rape_regression <- rape %>%  filter(sentforprosecution!="Cannot determine")
+
+rape_regression <-  rape_regression %>% mutate(reg_exclude=case_when(victiminvolve=="Unknown" & victimintoxicated=="Unknown"& casetype=="Unclear"& rapeexam=="Unknown"& legaltype=="Unknown" ~"exclude", TRUE~"include"))
+
+rape_regression <- rape_regression %>% filter(reg_exclude=="include")
+
+```
+
+
+```{r}
+rape %>% tabyl(victiminvolve, victiminterviewed) %>% 
+        adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+```{r}
+#create a new data frame and populate fields with binary values
+
+
+
+
+rape_regression <- 
+  rape_regression %>%
+  select(sentforprosecution, chargesfiled, victiminvolve, victimintoxicated, victim_affectmemory, delay, casetype, legaltype, rapeexam, suspectflag, department_collapse, vulnerable) %>% 
+  mutate(involve=case_when(victiminvolve=='Cooperated throughout'~1, victiminvolve=='Withdrew at some point'~0),
+         intox=case_when(victimintoxicated=='Yes'~1, victimintoxicated=='No'~0),
+         delay2=case_when(delay=='delay'~1, delay=='no delay'~0),
+         stranger=case_when(casetype=='Acquaintance'~0, casetype=='Stranger'~1),
+         force=case_when(legaltype=='Force/Threat/Fear' | legaltype=='Both'~1, legaltype=='Incapacitation'~0),
+         exam=case_when(rapeexam=='Yes'~1, rapeexam=='No' | rapeexam=='victim refused' | rapeexam=='Not applicable'~0),
+         suspect= case_when(suspectflag=='Named suspect'~1, suspectflag=='None' | suspectflag=='Partial name'~0),
+         pros=case_when(sentforprosecution=='Yes'~1, TRUE~0))
+
+
+
+#involve = victim involved throughout process
+#intox =victim was intoxicated/high
+#delay2 = reported to police 2 or more days after incident
+#stranger = is a stranger rape
+#force = force was used
+#exam = rape exam was conducted
+#suspect = there is a named suspect (excluding partial names)
+#pros = case was sent for prosecution (dependent variable)
+#department_collapse = Minneapolis, St Paul, All other (use as controlling variable)
+
+
+
+
+```
+
+
+
+```{r}
+model <-  glm(pros ~ involve+delay2+suspect, data=rape_regression, family=binomial())
+
+summary(model)
+```
+```{r}
+#victim involvement
+
+exp(3.454)
+```
+
+The odds of a case being sent for prosecution are 31 times greater if victim cooperates, than when the victim drops out, even after adjusting for other factors such as whether there was a delay in the reporting or if they didn't have a named suspect.
+
+
+
+
+```{r}
+#Delay
+exp(.06017)
+```
+
+The odds of a case being sent for prosecution drop in half if there was a delay in reporting, even after adjusting for other factors such as victim staying involved or if they have a named suspect.
+
+
+
+
+
+```{r}
+#Intoxication+invovlement
+
+
+model2 <-  glm(pros ~ intox+involve, data=rape_regression, family=binomial())
+
+summary(model2)
+```
+
+```{r}
+exp(0.1479)
+```
+
+
+
+```{r}
+
+#Involve-delay-stranger-named suspect
+model3 <-  glm(pros ~ involve+delay2+stranger+suspect, data=rape_regression, family=binomial())
+
+summary(model3)
+```
+
+```{r}
+#Stranger
+exp(0.5732)
+```
+The odds of a case being sent for prosecution are nearly 2 times higher if the perpetrator was a stranger to the victim, when other factors are considered including whether they had a named suspect, if the victim cooperates throughout and if there's no delay in reporting
+
+```{r}
+#the conviction rate is higher for stranger cases than acquaintannce cases when
+#they have a named suspect, victim is involved and no delay in reporting
+
+rape %>% filter(suspectflag=='Named suspect', victiminvolve=='Cooperated throughout', delay=='no delay') %>% group_by(casetype, sentforprosecution) %>% summarise(count=n())
+```
+
+```{r}
+
+#But if I take suspect out of the variables, I get a very different result
+#where stranger cases are less likely to go to prosecution
+model4 <-  glm(pros ~ involve+delay2+stranger, data=rape_regression, family=binomial())
+
+summary(model4)
+```
+
+```{r}
+#Stranger
+exp(-0.6302)
+```
+```{r}
+
+#This model uses just victim involvement and stranger vs acquaintance
+
+model5 <-  glm(pros ~ involve+stranger, data=rape_regression, family=binomial())
+
+summary(model5)
+```
+```{r}
+exp(0.4411)
+```
+
+The odds of a stranger case being sent for prosecution are lower than the odds of an acquaintance case, even if the victim cooperates throughout (not taking into consideration whether they have a named suspect or not).
+
+
+
+
+
+
+
+
+```{r}
+rape %>% group_by(chargesfiled) %>% summarise(count=n())
+```
+
+
+
+```{r}
+rape_reg_2 <- rape %>%  filter(chargesfiled=='Yes' | chargesfiled=='No')
+
+rape_reg_2<-  rape_reg_2 %>% mutate(reg_exclude=case_when(victiminvolve=="Unknown" & victimintoxicated=="Unknown"& casetype=="Unclear"& rapeexam=="Unknown"& legaltype=="Unknown" ~"exclude", TRUE~"include"))
+
+rape_reg_2 <- rape_reg_2 %>% filter(reg_exclude=="include")
+
+
+
+rape_reg_2 <- 
+  rape_reg_2 %>%
+  select(sentforprosecution, chargesfiled, victiminvolve, victimintoxicated, victim_affectmemory, delay, casetype, legaltype, rapeexam, suspectflag, department_collapse, vulnerable) %>% 
+  mutate(involve=case_when(victiminvolve=='Cooperated throughout'~1, victiminvolve=='Withdrew at some point'~0),
+         intox=case_when(victimintoxicated=='Yes'~1, victimintoxicated=='No'~0),
+         delay2=case_when(delay=='delay'~1, delay=='no delay'~0),
+         stranger=case_when(casetype=='Acquaintance'~0, casetype=='Stranger'~1),
+         force=case_when(legaltype=='Force/Threat/Fear' | legaltype=='Both'~1, legaltype=='Incapacitation'~0),
+         exam=case_when(rapeexam=='Yes'~1, rapeexam=='No' | rapeexam=='victim refused' | rapeexam=='Not applicable'~0),
+         suspect= case_when(suspectflag=='Named suspect'~1, suspectflag=='None' | suspectflag=='Partial name'~0),
+         charge=case_when(chargesfiled=='Yes'~1, TRUE~0))
+```
+
+
+```{r}
+#Involve-delay-stranger-named suspect
+model_charges_v1 <-  glm(charge ~ involve+delay2+stranger+suspect, data=rape_reg_2, family=binomial())
+
+summary(model_charges_v1)
+```
+
+The odds of charges being filed are 25 times greater if the victim cooperates throughout the case, even after accounting for other factors such as victim involvement, whether they have a named suspect and whether there was a delay in reporting the case.
+
+```{r}
+#
+exp(3.2205)
+```
+The odds of charges being filed are nearly 4 times greater if the perpetrator was a stranger to the victim, even after accounting for other factors such as victim involvement, whether they have a named suspect and whether there was a delay in reporting the case.
+```{r}
+
+exp(1.3089)
+```
+```{r}
+model_charges_v2 <-  glm(charge ~ involve+delay2+stranger+suspect+intox, data=rape_reg_2, family=binomial())
+
+summary(model_charges_v2)
+```
+
+
+
+```{r}
+exp(0.3096)
+
+
+
+```
+
+
+
+
+```{r}
+
+#Model only using involvement and intoxication, with charges filed as dependent
+model_charges_v3 <-  glm(charge ~ involve+intox, data=rape_reg_2, family=binomial())
+
+summary(model_charges_v3)
+```
+
+The odds of charges being filed in a case are nearly two times larger if the victim was not intoxicated than if she was intoxicated, even after taking into consideration whether the victim cooperated with the investigation or not.
+
+```{r}
+exp(0.5803)
+
+
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+model_charges_v4 <-  glm(charge ~ intox, data=rape_reg_2, family=binomial())
+
+summary(model_charges_v4)
+```
+
+```{r}
+exp(0.6939)
+```
+
