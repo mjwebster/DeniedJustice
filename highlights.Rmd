@@ -162,20 +162,6 @@ plot(convict_chart)
 
 
 
-#int <-  rape %>% group_by(victim_interview_combine) %>% summarise(count=n()) %>% mutate(pct = (count/sum(count))) %>% 
-#  filter(victim_interview_combine=="No/Attempted"| victim_interview_combine=="Yes")
-
-
-#int_chart <- 	ggplot(int, aes(x = victim_interview_combine, y = pct)) +
-#	geom_col(color="#556E7F", fill="#556E7F") +
- # coord_flip()+
-#  geom_text(stat="identity", nudge_x=0, nudge_y=-.15,label=paste0(int$victim_interview_combine,": ",round((int$pct)*100,0),"%"))+
-#	scale_y_continuous(labels = percent, limits=c(0,1))+
-#  theme_hc()+
-#  theme(axis.text.y=element_blank())+
-#  labs(title = "Did investigators conduct a forensic interview with victim?",
-#       x=NULL,
-#       y=NULL)
 
 
 int <-  rape %>% group_by(victiminterviewed) %>% summarise(count=n()) %>% mutate(pct = (count/sum(count))) %>% 

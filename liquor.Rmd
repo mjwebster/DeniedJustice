@@ -1,0 +1,644 @@
+---
+title: "Victim intoxicated cases"
+subtitle: "Internal only"
+author: "MaryJo Webster"
+date:  "Last updated: `r Sys.Date()`"
+output:
+  html_document: 
+    #toc: true
+    #to_depth: 1
+    #toc_float: true
+    theme: flatly
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE)
+
+#URL FOR THIS PAGE: http://strib-data-internal.s3-us-west-1.amazonaws.com/projects/rape/liquor.html
+```
+
+```{r, code=readLines("load_clean_data.R"), echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+
+
+```{r}
+
+rape_intox <- rape %>% filter(victimintoxicated!="Unknown") %>% mutate(intoxflag=case_when(victimintoxicated=="Yes"~"Intoxicated", victimintoxicated=="No"~"Not intoxicated"))
+
+intox <-  rape_intox %>% group_by(intoxflag) %>% summarise(count=n()) %>% mutate(pct = round((count/sum(count))*100,0)) 
+
+
+
+
+#this assigns the first column of the cases data frame as the "names" for the waffle chart and assigns the third column as the "values"
+intox_waffledata <-  data.frame(names=intox[, 1],vals=intox[,3])
+
+#this makes the waffle chart. Can also add other labels, like source, etc
+
+#waffle(intox_waffledata, rows=10, size=0.5, colors=c("#006666", "#33cc33"), title="Share of cases with intoxicated victims")
+
+```
+
+
+
+#Comparing police actions
+Cases where victim was intoxicated versus those where victim was not
+
+```{r}
+intox_investigate <-  rape_intox  %>%  group_by(intoxflag, investigatorsassigned) %>% summarise(count=n()) 
+
+
+intox_investigate <- 	intox_investigate %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(investigatorsassigned=="Yes")
+
+
+intox_investigate_chart <- 	ggplot(intox_investigate, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_investigate$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Cases assigned to investigators",
+       x=NULL,
+       y=NULL)
+
+plot(intox_investigate_chart)
+
+```
+
+
+
+
+```{r}
+intox_vinterview <-  rape_intox %>%  group_by(intoxflag, victiminterviewed) %>% summarise(count=n()) 
+
+
+intox_vinterview <- 	intox_vinterview %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(victiminterviewed=="Yes")
+
+
+intox_vinterview_chart <- 	ggplot(intox_vinterview, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_vinterview$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Investigtor interviewed victim",
+       x=NULL,
+       y=NULL)
+
+plot(intox_vinterview_chart)
+```
+
+
+
+
+```{r}
+intox_sinterview <-  rape_intox %>% filter(suspectflag=="Named suspect") %>%  group_by(intoxflag, suspectinterviewed) %>% summarise(count=n()) 
+
+
+intox_sinterview <- 	intox_sinterview %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(suspectinterviewed=="Yes")
+
+
+intox_sinterview_chart <- 	ggplot(intox_sinterview, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_sinterview$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Investigtor interviewed named suspect",
+       subtitle="Only cases with named suspect",
+       x=NULL,
+       y=NULL)
+
+plot(intox_sinterview_chart)
+```
+
+
+
+```{r}
+intox_evidence <-  rape_intox %>% filter(delay=="no delay") %>%  group_by(intoxflag, evidence2) %>% summarise(count=n()) 
+
+
+intox_evidence <- 	intox_evidence %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(evidence2=="All collected")
+
+
+intox_evidence_chart <- 	ggplot(intox_evidence, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_evidence$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "All potential evidence collected",
+       subtitle="Only cases with no reporting delay",
+       x=NULL,
+       y=NULL)
+
+plot(intox_evidence_chart)
+```
+
+
+
+
+```{r}
+intox_witness <-  rape_intox %>%   group_by(intoxflag, witness2) %>% summarise(count=n()) 
+
+
+intox_witness <- 	intox_witness %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(witness2=="All witnesses interviewed")
+
+
+intox_witness_chart <- 	ggplot(intox_witness, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_witness$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "All potential witnesses interviewed",
+       x=NULL,
+       y=NULL)
+
+plot(intox_witness_chart)
+
+#rape_intox %>% group_by(witness2) %>% summarise(count=n())
+```
+
+
+#When victim cooperates
+
+```{r}
+intox_investigate <-  rape_intox %>% filter(victiminvolve=="Cooperated throughout") %>%  group_by(intoxflag, investigatorsassigned) %>% summarise(count=n()) 
+
+
+intox_investigate <- 	intox_investigate %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(investigatorsassigned=="Yes")
+
+
+intox_investigate_chart <- 	ggplot(intox_investigate, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_investigate$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Cases assigned to investigators",
+       subtitle="Victim involved throughout",
+       x=NULL,
+       y=NULL)
+
+plot(intox_investigate_chart)
+
+```
+
+
+
+
+```{r}
+intox_vinterview <-  rape_intox %>% filter(victiminvolve=="Cooperated throughout") %>% group_by(intoxflag, victiminterviewed) %>% summarise(count=n()) 
+
+
+intox_vinterview <- 	intox_vinterview %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(victiminterviewed=="Yes")
+
+
+intox_vinterview_chart <- 	ggplot(intox_vinterview, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_vinterview$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Investigtor interviewed victim",
+       subtitle="Victim involved throughout",
+       x=NULL,
+       y=NULL)
+
+plot(intox_vinterview_chart)
+```
+
+
+
+
+```{r}
+intox_sinterview <-  rape_intox %>% filter(suspectflag=="Named suspect", victiminvolve=="Cooperated throughout") %>%  group_by(intoxflag, suspectinterviewed) %>% summarise(count=n()) 
+
+
+intox_sinterview <- 	intox_sinterview %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(suspectinterviewed=="Yes")
+
+
+intox_sinterview_chart <- 	ggplot(intox_sinterview, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_sinterview$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Investigtor interviewed named suspect",
+       subtitle="Only cases with named suspect; victim involved throughout",
+       x=NULL,
+       y=NULL)
+
+plot(intox_sinterview_chart)
+```
+
+
+
+```{r}
+intox_evidence <-  rape_intox %>% filter(delay=="no delay", victiminvolve=="Cooperated throughout") %>%  group_by(intoxflag, evidence2) %>% summarise(count=n()) 
+
+
+intox_evidence <- 	intox_evidence %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(evidence2=="All collected")
+
+
+intox_evidence_chart <- 	ggplot(intox_evidence, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_evidence$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "All potential evidence collected",
+       subtitle="No delay; victim involved",
+       x=NULL,
+       y=NULL)
+
+plot(intox_evidence_chart)
+```
+
+
+
+
+```{r}
+intox_witness <-  rape_intox %>% filter(victiminvolve=="Cooperated throughout") %>%  group_by(intoxflag, witness2) %>% summarise(count=n()) 
+
+
+intox_witness <- 	intox_witness %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(witness2=="All witnesses interviewed")
+
+
+intox_witness_chart <- 	ggplot(intox_witness, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_witness$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "All potential witnesses interviewed",
+       subtitle="Victim involved throughout",
+       x=NULL,
+       y=NULL)
+
+plot(intox_witness_chart)
+
+#rape_intox %>% group_by(witness2) %>% summarise(count=n())
+```
+
+#Comparing outcomes
+Cases where victim was intoxicated versus those where victim was not
+
+```{r}
+intox_involve <-  rape_intox %>%  group_by(intoxflag, victiminvolve) %>% summarise(count=n()) 
+
+
+intox_involve <- 	intox_involve %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(victiminvolve=="Cooperated throughout")
+
+
+intox_involve_chart <- 	ggplot(intox_involve, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_involve$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Victim involved throughout",
+       x=NULL,
+       y=NULL)
+
+plot(intox_involve_chart)
+```
+
+```{r}
+intox_pros <-  rape_intox %>%  group_by(intoxflag, sentforprosecution) %>% summarise(count=n()) 
+
+
+intox_pros <- 	intox_pros %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(sentforprosecution=="Yes")
+
+
+intox_pros_chart <- 	ggplot(intox_pros, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_pros$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Sent for prosecution",
+       x=NULL,
+       y=NULL)
+
+plot(intox_pros_chart)
+```
+
+
+```{r}
+intox_charge <-  rape_intox %>%  group_by(intoxflag, chargesfiled) %>% summarise(count=n()) 
+
+
+intox_charge <- 	intox_charge %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(chargesfiled=="Yes")
+
+
+intox_charge_chart <- 	ggplot(intox_charge, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_charge$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Charges filed",
+       x=NULL,
+       y=NULL)
+
+plot(intox_charge_chart)
+```
+
+
+
+```{r}
+intox_conv <-  rape_intox %>%  group_by(intoxflag, conviction) %>% summarise(count=n()) 
+
+
+intox_conv <- 	intox_conv %>% group_by(intoxflag) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(conviction=="Yes")
+
+
+intox_conv_chart <- 	ggplot(intox_conv, aes(x = intoxflag, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((intox_conv$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Results in conviction",
+       x=NULL,
+       y=NULL)
+
+plot(intox_conv_chart)
+```
+
+
+#Older charts
+
+Pct of cases involving intoxicated victim
+```{r}
+rape%>% tabyl(legaltype, victimintoxicated)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+Victim involvement
+
+Victims who were intoxicated are more likely to withdraw
+
+```{r}
+rape %>% 
+  tabyl(victimintoxicated, victiminvolve)%>%
+  adorn_totals("row") %>% 
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits=0) %>% 
+  #adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+
+Victim involvement by legal type<br>
+Only cases with intoxicated victim
+
+```{r}
+rape %>% 
+  filter(victimintoxicated=="Yes") %>% 
+  tabyl(legaltype, victiminvolve)%>%
+  adorn_totals("row") %>% 
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits=0) %>% 
+  #adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+Sent to investigators by victim intoxication
+
+```{r}
+rape%>%
+  tabyl(victimintoxicated, investigatorsassigned)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  #adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+Sent for prosecution by victim intoxication
+
+
+```{r}
+rape %>% 
+  filter(victiminvolve=="Cooperated throughout") %>% 
+  tabyl(victimintoxicated, sentforprosecution)%>%
+  adorn_totals("row") %>% 
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits=0) %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+Charges filed by victim intoxication
+
+
+```{r}
+rape %>% tabyl(victimintoxicated, chargesfiled)%>%
+  adorn_totals("row") %>% 
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits=0) %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+Conviction rates by victim intoxication<br>
+victim intoxicated=yes
+
+
+```{r intoxcases, echo=FALSE}
+
+rape %>% tabyl(victimintoxicated, conviction)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+Declined cases<br>
+victim intoxicated=yes<br>
+sent for prosecution = yes
+
+
+```{r declinedsuspectcolor, echo=FALSE}
+rape %>% filter(sentforprosecution=="Yes")%>%  tabyl(victimintoxicated, declinedcase)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+Potential evidence collected by victim intoxication<br>
+Where no delay in reporting<br>
+
+
+```{r}
+
+rape%>%filter(delay=="no delay", victiminvolve=="Cooperated throughout") %>% tabyl(victimintoxicated, evidence2)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Potential witnesses interviewed by victim intoxication
+
+
+
+```{r}
+rape%>% 
+  filter(victiminvolve=="Cooperated throughout") %>% 
+  tabyl(victimintoxicated, witness2)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+Victim interviewed by victim intoxication
+
+```{r}
+rape%>% 
+  filter(victiminvolve=="Cooperated throughout") %>% 
+  tabyl(victimintoxicated, victiminterviewed)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Suspect interviewed by victim intoxication<br>
+Where there is a named suspect<br>
+
+```{r}
+rape%>%filter(suspectflag=="Named suspect", victiminvolve=="Cooperated throughout") %>% tabyl(victimintoxicated, suspectinterviewed)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Suspect arrested by victim intoxication<br>
+Only cases with a named suspect<br>
+
+
+```{r}
+rape %>% filter(suspectflag=="Named suspect", victiminvolve=="Cooperated throughout") %>% tabyl(victimintoxicated,suspectarrested)%>%
+  adorn_totals("row") %>% 
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits=0) %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r movetoS3, echo=FALSE, eval=FALSE, results="hide"}
+
+
+#rmarkdown::render("rape2018.Rmd")
+
+
+# specify keys as environment variables
+
+Sys.setenv("AWS_ACCESS_KEY_ID" =  rstudioapi::askForPassword("AWS_ACCESS_KEY_ID"),
+
+           "AWS_SECRET_ACCESS_KEY" = rstudioapi::askForPassword("AWS_SECRET_ACCESS_KEY"))
+
+get_bucket("strib-data-internal")
+
+
+put_object(file = "liquor.html", object = "projects/rape/liquor.html", bucket = "strib-data-internal")
+
+put_object(file = "liquor.html", object = "projects/rape/liquor.html", bucket = "strib-data-internal", acl=c("public-read"))
+
+
+```
