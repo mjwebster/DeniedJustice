@@ -44,7 +44,9 @@ library(waffle)
 
 
 #Data is stored in a zip in github
-rcao <-  read_csv("rcao_import.csv")
+#export it from the zip and put it in the data folder
+
+rcao <-  read_csv("./data/rcao_import.csv")
 
 
 

@@ -22,7 +22,7 @@ library(ggplot2)
 library(lubridate)
 
 #load data
-bca_original <- read_csv("BCA_majorcrimes.csv")
+bca_original <- read_csv("./data/BCA_majorcrimes.csv")
 
 #check that we have all the years we wanted
 bca_original %>%

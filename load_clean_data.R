@@ -38,7 +38,7 @@ library(foreign)
 #skip=1 means to not import that header row
 #col_types tells it to either set field to character (c) or Date (D) or skip ("_")
 #trim_ws trims leading and trailing spaces
-rape_import <-  read_csv("RapeProject2018-MaryJoExportView.csv", col_names=FALSE, skip=1,
+rape_import <-  read_csv("./data/RapeProject2018-MaryJoExportView.csv", col_names=FALSE, skip=1,
                          col_types=cols(X1=col_date("%m/%d/%Y"),
                                         X2='c',X3='c',X4='c',X5='_',X6='_',X7='c',X8='c',X9='_',X10='_',X11='_',X12='_',
                                         X13='c',X14='_',X15='c',X16='c',X17=col_date("%m/%d/%Y"),X18=col_date("%m/%d/%Y"),

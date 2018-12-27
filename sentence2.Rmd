@@ -50,7 +50,7 @@ library(foreign)
 
 #Import the 2008 to 2016 data file
 
-CSC_2008_2016 =  read.spss("AddTPsex 2008_20016 (002).sav", to.data.frame=TRUE)
+CSC_2008_2016 =  read.spss("./sentencing/AddTPsex 2008_20016 (002).sav", to.data.frame=TRUE)
 
 #This winnows it down to only the fields that match with the 2017 file
 #includes some renaming
@@ -68,7 +68,7 @@ CSC_2008_2016 <-  CSC_2008_2016 %>%
 
 
 #Import the 2017 data file
-CSC_2017 =  read.spss("CSC1thr5_2017.sav", to.data.frame=TRUE) %>% 
+CSC_2017 =  read.spss("./sentencing/CSC1thr5_2017.sav", to.data.frame=TRUE) %>% 
   mutate(chargeid='NA')
 
 #This winnows it down to only the fields that match with the older data file
