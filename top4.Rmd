@@ -1,0 +1,468 @@
+---
+title: "Star Tribune analysis: Top 4 agencies"
+author: "MaryJo Webster, Brandon Stahl, Jennifer Bjorhus"
+date: 'Last updated: `r Sys.Date()`'
+output:
+  html_document:
+    theme: flatly
+    #to_depth: 1
+    #toc: yes
+    #toc_float: yes
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE, fig.height = 3, fig.width = 6)
+
+
+#URL FOR THIS PAGE: http://strib-data-public.s3-us-west-1.amazonaws.com/projects/rape/top4.html
+```
+
+```{r, code=readLines("load_clean_data.R"), echo=FALSE, warning=FALSE, message=FALSE}
+
+```
+
+
+#Cases reviewed
+
+<p>The Star Tribune requested, from 20 law enforcement agencies statewide, investigative reports on sexual assault reported in 2015 and 2016. We have about half the cases we expected and are waiting on the others. We excluded incest cases or those involving a victim younger than 13.  Here are the number of inactive cases we've reviewed from the top 4 agencies.</p>
+```{r}
+rape %>%
+  filter(department=="Anoka" | department=="Minneapolis" | department=="St. Paul" | department=="Duluth") %>% 
+  group_by(department) %>%
+  summarise(Number_cases=n()) %>%
+  arrange(desc(Number_cases)) %>%
+  #rename(dept=department)%>%
+  #adorn_totals("row") %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+<br>
+<br>
+
+#Percent of cases resulting in conviction
+<p>Less than 1 in 10 of the cases we reviewed resulted in conviction.</p>
+```{r}
+
+#Create a new data frame with only the top 4 departments
+rape_top4 <- rape %>% filter(department=="Anoka" | department=="Minneapolis" | department=="St. Paul" | department=="Duluth") 
+
+convict <-  rape_top4 %>% group_by(department, conviction) %>% summarise(count=n()) 
+
+
+convict <- 	convict %>% group_by(department) %>%
+	mutate(pct = (count/sum(count)))	%>%
+	filter(conviction=="Yes")
+
+
+convict_chart <- 	ggplot(convict, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((convict$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = NULL,
+       x=NULL,
+       y=NULL)
+
+plot(convict_chart)
+
+
+```
+<br>
+<br>
+
+
+```{r}
+
+mps_buckets_charges <- rape_top4 %>% group_by(chargesfiled, department) %>%
+  summarise(count=n()) 
+  
+ mps_buckets_charges <- mps_buckets_charges %>% group_by(department) %>%  
+	mutate(pct = count/sum(count)) %>% 
+   filter(chargesfiled=="Yes")
+
+
+mps_buckets_charges_chart <- 	ggplot(mps_buckets_charges, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity",label=paste0(round((mps_buckets_charges$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = 'Charges filed',
+       x=NULL,
+       y=NULL)
+
+plot(mps_buckets_charges_chart)
+```
+
+
+#Percent of cases sent for prosecution
+<p>Overall in our analysis, we found that only about 1 in four cases is sent for prosecution. It varies by department, though, since some have a practice of sending most, if not all, cases to prosecutors.</p>
+```{r}
+
+
+
+mps_buckets <- rape_top4 %>% group_by(sentforprosecution, department) %>%
+  summarise(count=n()) 
+  
+ mps_buckets <- mps_buckets %>% group_by(department) %>%  
+	mutate(pct = count/sum(count)) %>% 
+   filter(sentforprosecution=="Yes")
+
+
+mps_buckets_chart <- 	ggplot(mps_buckets, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity",label=paste0(round((mps_buckets$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = NULL,
+       x=NULL,
+       y=NULL)
+
+plot(mps_buckets_chart)
+
+
+```
+<br>
+<br>
+<br>
+
+#Case investigations
+
+
+```{r}
+
+
+
+mps_investigate <- rape_top4 %>% group_by(department, investigatorsassigned) %>%
+  summarise(count=n()) 
+	
+
+mps_investigate <-  mps_investigate %>% mutate(pct = count/sum(count)) %>% filter(investigatorsassigned=="Yes")
+
+
+mps_investigate_chart <- 	ggplot(mps_investigate, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_investigate$pct)*100,0),"%"), hjust= 1, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Percentage of cases assigned to investigator",
+       x=NULL,
+       y=NULL)
+
+plot(mps_investigate_chart)
+```
+
+
+
+
+<p>The charts below look at how often investigators took basic policing steps in the cases we reviewed.</p>
+<br>
+<p>A recommended best practice is for investigators to interview the victim after she/he makes an initial report to the officer responding to the initial call.</p>
+
+```{r}
+
+
+
+
+mps_int <-  rape_top4 %>% group_by(department, victiminterviewed) %>% summarise(count=n()) 
+
+mps_int <-  mps_int %>% mutate(pct = (count/sum(count))) %>% 
+  filter(victiminterviewed=="Yes")
+
+
+mps_int_chart <- 	ggplot(mps_int, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_int$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  #theme(axis.text.y=element_blank())+
+  labs(title = "Investigators interviewed victim",
+       x=NULL,
+       y=NULL)
+
+plot(mps_int_chart)
+
+```
+<br>
+<br>
+<br>
+<br>
+
+<p>About 70% of the cases we reviewed listed one or more suspect names in the report, yet investigators failed to interview that person more often than not.</p>
+```{r}
+
+
+mps_int_suspect <-  rape_top4 %>% filter(suspectflag=="Named suspect") %>% group_by(department, suspectinterviewed) %>% summarise(count=n())
+
+mps_int_suspect <-  mps_int_suspect %>% mutate(pct = (count/sum(count))) %>% 
+  filter(suspectinterviewed=="Yes")
+
+
+
+mps_int_suspect_chart <- 	ggplot(mps_int_suspect, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_int_suspect$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+   #theme(axis.text.y=element_blank())+
+  labs(title = "Named suspect was interviewed",
+       x=NULL,
+       y=NULL)
+
+plot(mps_int_suspect_chart)
+```
+
+<br>
+<br>
+<br>
+<br>
+<p>When reviewing cases, we looked for indications of evidence that could've been collected but there was no documentation in the report that it was. This might have included DNA, clothing or bed sheets, surveillance video or cell phone data.</p>
+```{r}
+
+mps_evidence <-  rape_top4 %>% filter(delay=="no delay") %>% group_by(department, evidence2) %>% summarise(count=n()) 
+
+mps_evidence <-  mps_evidence %>% 	mutate(pct = (count/sum(count)))	%>%
+	filter(evidence2=="All collected")
+
+
+mps_evidence_chart <- 	ggplot(mps_evidence, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_evidence$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+    # theme(axis.text.y=element_blank())+
+  labs(title = "All potential evidence collected",
+       subtitle="Only cases with no reporting delay",
+       x=NULL,
+       y=NULL)
+
+plot(mps_evidence_chart)
+```
+
+<br>
+<br>
+<br>
+<br>
+
+
+```{r}
+
+
+mps_witness <-  rape_top4  %>% group_by(department, witness2) %>% summarise(count=n()) 
+
+mps_witness <-  mps_witness %>% 	mutate(pct = (count/sum(count))) %>% 
+filter(witness2=="All witnesses interviewed")
+
+
+mps_witness_chart <- 	ggplot(mps_witness, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_witness$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+     # theme(axis.text.y=element_blank())+
+  labs(title = "All potential witnesses interviewed",
+             x=NULL,
+       y=NULL)
+
+plot(mps_witness_chart)
+```
+<p>This could include outcry witnesses</p>
+<br>
+<br>
+<br>
+<br>
+
+#Victim involvement
+
+<p>About one-third of victims either choose to no longer cooperate in an investigation or police are unable to reach them later in the investigation.</p>
+```{r}
+mps_involve <-  rape_top4 %>% 
+  group_by(department, victiminvolve) %>%
+  summarise(count=n()) 
+
+mps_involve <-  mps_involve %>% group_by(department) %>% 
+  mutate(pct = (count/sum(count))) %>% 
+filter(victiminvolve=="Withdrew at some point")
+
+
+
+mps_involve_chart <- 	ggplot(mps_involve, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_involve$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Percent of cases where victim dropped out",
+       x=NULL,
+       y=NULL)
+
+plot(mps_involve_chart)
+```
+
+
+
+
+#Cases with intoxicated victim
+
+```{r}
+mps_intox <-  rape_top4 %>% 
+  group_by(department, victimintoxicated) %>%
+  summarise(count=n()) 
+
+mps_intox <-  mps_intox %>% group_by(department) %>% 
+  mutate(pct = (count/sum(count))) %>% 
+filter(victimintoxicated=="Yes")
+
+
+
+mps_intox_chart <- 	ggplot(mps_intox, aes(x = department, y = pct)) +
+	geom_col(color="#556E7F", fill="#556E7F") +
+  coord_flip()+
+  geom_text(stat="identity", label=paste0(round((mps_intox$pct)*100,0),"%"), hjust= -0.5, size=4, position= position_dodge(width=1))+
+	scale_y_continuous(labels = percent, limits=c(0,1))+
+  theme_hc()+
+  labs(title = "Percent of cases with intoxicated victim",
+       x=NULL,
+       y=NULL)
+
+plot(mps_intox_chart)
+```
+
+# Number of cases
+```{r}
+
+#This code returns to the main table
+#it refers to a column called "top4" that is populated in the load_clean_data script
+#It sets the top 4 agencies as Minneapolis, St. Paul, Anoka and Duluth
+
+
+rape %>% group_by(top4) %>% summarise(count=n()) %>% mutate(pct=(count/sum(count))) %>% 
+  adorn_totals("row") %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+#compare top 4 to others collectively<br>
+Sent for prosecution
+```{r}
+
+rape %>% tabyl(top4, sentforprosecution) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Charges filed
+```{r}
+rape %>% tabyl(top4, chargesfiled) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Conviction
+
+```{r}
+rape %>% tabyl(top4, conviction) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+All evidence collected
+```{r}
+rape %>% tabyl(top4, evidence2) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+All witnesses interviewed
+```{r}
+rape %>% tabyl(top4, witness2) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Victim interviewed
+
+```{r}
+rape %>% tabyl(top4, victiminterviewed) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+Named suspect interviewed
+```{r}
+rape %>% filter(suspectflag=="Named suspect") %>% tabyl(top4, suspectinterviewed) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+
+
+
+```{r movetoS3, echo=FALSE, eval=FALSE, results="hide"}
+
+
+
+
+
+# specify keys as environment variables
+library(aws.s3)
+Sys.setenv("AWS_ACCESS_KEY_ID" =  rstudioapi::askForPassword("AWS_ACCESS_KEY_ID"),
+
+           "AWS_SECRET_ACCESS_KEY" = rstudioapi::askForPassword("AWS_SECRET_ACCESS_KEY"))
+
+get_bucket("strib-data-public")
+
+
+put_object(file = "top4.html", object = "projects/rape/top4.html", bucket = "strib-data-public")
+
+put_object(file = "top4.html", object = "projects/rape/top4.html", bucket = "strib-data-public", acl=c("public-read"))
+
+
+```
+
