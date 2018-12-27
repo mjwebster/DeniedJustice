@@ -1,0 +1,352 @@
+---
+title: "Process BCA clearance data"
+output: html_notebook
+---
+
+```{r}
+
+#Data Source: MInnesota Bureau of Criminal Apprehension
+#Requested summary data on all "major crimes" reported by each MN law enforcement agency
+#timeframe: 2010 to 2016
+#this data was requested at the start of the Denied Justice work; 2017 wasn't yet available
+#Crimes included: murder, rape, robbery, aggrevated assault, human trafficking, burglary, larceny, motor vehicle theft and arson
+#For each crime, data shows: number of incidents reported, number deemed unfounded, "actual" (total reported minus unfounded) and the number cleared
+#Cleared cases could be from any year; they are listed in the year they are cleared
+
+
+
+# load required packages
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+#load data
+bca_original <- read_csv("BCA_majorcrimes.csv")
+
+#check that we have all the years we wanted
+bca_original %>%
+  group_by(ReportingYear)%>%
+  summarise(count= n())
+```
+
+
+
+
+```{r}
+#populate the "report fields" -- report= actual+unfounded
+bca_original <- bca_original %>%
+  select(1:31)%>%
+  mutate(Reported_Murder=Unf_Murder+Actual_Murder)%>%
+   mutate(Reported_Rape=Unf_Rape+Actual_Rape)%>%
+   mutate(Reported_Robbery=Unf_Robbery+Actual_Robbery)%>%
+   mutate(Reported_AggAssault=Unf_AggAssault+Actual_AggAssault)%>%
+   mutate(Reported_HumanTraff=Unf_HumanTraff+Actual_HumanTraff)%>%
+   mutate(Reported_Burglary=Unf_Burglary+Actual_Burglary)%>%
+  mutate(Reported_Larceny=Unf_Larceny+Actual_Larceny)%>%
+   mutate(Reported_MotorVehTheft=Unf_MotorVehTheft+Actual_MotorVehTheft)%>%
+   mutate(Reported_Arson=Unf_Arson+Actual_Arson)
+
+```
+
+```{r}
+
+
+
+#split out each crime into separate dataframes; including the first four columns for each
+#rename columns in each
+murder <- select(bca_original, 1:4, 5, 14,23,32)%>% mutate(crimetype="Murder")
+
+names(murder)[names(murder)=="Unf_Murder"] <- "unfounded"
+names(murder)[names(murder)=="Actual_Murder"] <- "actual"
+names(murder)[names(murder)=="Cleared_Murder"] <- "cleared"
+names(murder)[names(murder)=="Reported_Murder"] <- "reported"
+
+
+
+rape <- select(bca_original, 1:4, 6,15,24,33)%>% mutate(crimetype="Rape")
+
+names(rape)[names(rape)=="Unf_Rape"] <- "unfounded"
+names(rape)[names(rape)=="Actual_Rape"] <- "actual"
+names(rape)[names(rape)=="Cleared_Rape"] <- "cleared"
+names(rape)[names(rape)=="Reported_Rape"] <- "reported"
+
+
+robbery <- select(bca_original, 1:4, 7,16,25,34)%>% mutate(crimetype="Robbery")
+
+names(robbery)[names(robbery)=="Unf_Robbery"] <- "unfounded"
+names(robbery)[names(robbery)=="Actual_Robbery"] <- "actual"
+names(robbery)[names(robbery)=="Cleared_Robbery"] <- "cleared"
+names(robbery)[names(robbery)=="Reported_Robbery"] <- "reported"
+
+
+aggassault <- select(bca_original, 1:4, 8,17,26,35)%>% mutate(crimetype="Agg Assault")
+
+
+names(aggassault)[names(aggassault)=="Unf_AggAssault"] <- "unfounded"
+names(aggassault)[names(aggassault)=="Actual_AggAssault"] <- "actual"
+names(aggassault)[names(aggassault)=="Cleared_AggAssault"] <- "cleared"
+names(aggassault)[names(aggassault)=="Reported_AggAssault"] <- "reported"
+
+
+humantraff <- select(bca_original, 1:4, 9,18,27,36)%>% mutate(crimetype="Human Traff")
+
+names(humantraff)[names(humantraff)=="Unf_HumanTraff"] <- "unfounded"
+names(humantraff)[names(humantraff)=="Actual_HumanTraff"] <- "actual"
+names(humantraff)[names(humantraff)=="Cleared_HumanTraff"] <- "cleared"
+names(humantraff)[names(humantraff)=="Reported_HumanTraff"] <- "reported"
+
+
+burglary <- select(bca_original, 1:4, 10,19,28,37)%>% mutate(crimetype="Burglary")
+
+names(burglary)[names(burglary)=="Unf_Burglary"] <- "unfounded"
+names(burglary)[names(burglary)=="Actual_Burglary"] <- "actual"
+names(burglary)[names(burglary)=="Cleared_Burglary"] <- "cleared"
+names(burglary)[names(burglary)=="Reported_Burglary"] <- "reported"
+
+
+larceny <- select(bca_original, 1:4, 11,20,29,38)%>% mutate(crimetype="Larceny")
+
+names(larceny)[names(larceny)=="Unf_Larceny"] <- "unfounded"
+names(larceny)[names(larceny)=="Actual_Larceny"] <- "actual"
+names(larceny)[names(larceny)=="Cleared_Larceny"] <- "cleared"
+names(larceny)[names(larceny)=="Reported_Larceny"] <- "reported"
+
+
+motorvehtheft <- select(bca_original, 1:4, 12,21,30,39)%>% mutate(crimetype="Motor Veh Theft")
+
+names(motorvehtheft)[names(motorvehtheft)=="Unf_MotorVehTheft"] <- "unfounded"
+names(motorvehtheft)[names(motorvehtheft)=="Actual_MotorVehTheft"] <- "actual"
+names(motorvehtheft)[names(motorvehtheft)=="Cleared_MotorVehTheft"] <- "cleared"
+names(motorvehtheft)[names(motorvehtheft)=="Reported_MotorVehTheft"] <- "reported"
+
+
+arson <- select(bca_original, 1:4, 13,22,31,40)%>% mutate(crimetype="Arson")
+
+names(arson)[names(arson)=="Unf_Arson"] <- "unfounded"
+names(arson)[names(arson)=="Actual_Arson"] <- "actual"
+names(arson)[names(arson)=="Cleared_Arson"] <- "cleared"
+names(arson)[names(arson)=="Reported_Arson"] <- "reported"
+
+
+#merge rows together 
+
+crimes <- rbind(murder,rape, robbery, motorvehtheft, larceny, humantraff, burglary, arson, aggassault)
+
+
+
+#collapse years 
+crimes_allyrs <- crimes %>% group_by(AgencyORI, AgencyLongName, CountyName, crimetype)%>%
+  summarise(unf=sum(unfounded), act=sum(actual), clear=sum(cleared), report=sum(reported))
+
+#remove uneeded data frames from environment
+rm(murder)
+rm(rape)
+rm(robbery)
+rm(aggassault)
+rm(humantraff)
+rm(larceny)
+rm(motorvehtheft)
+rm(arson)
+rm(burglary)
+
+
+
+
+```
+
+
+```{r}
+#calculate clearance rate -- cleared/actual
+#caclulate nothing_count - number of reports where it wasn't cleared (includes unfoundeds)
+#calculate nothing_rate - percent of reports where it was deemed unfounded or it wasn't cleared
+#notclear_rate is the opposite of clearance rate - how many cases were not cleared (doesn't count unfoundeds)
+crimes_allyrs <- crimes_allyrs %>% mutate(clear_rate = (clear/act)*100)%>%
+  mutate(nothing_count = report-clear)%>%
+  mutate(nothing_rate = (nothing_count/report)*100)%>%
+  mutate(notcleared = act-clear) %>%
+  mutate(notclear_rate =((act-clear)/act)*100) #ignores unfoundeds
+
+#agencies with 50 or more rapes over all the years, sorted by their not cleared rate
+crimes_allyrs %>% 
+  filter(crimetype=="Rape", report>=50)%>%
+  select(AgencyLongName, report, unf, notclear_rate,nothing_rate)%>% 
+  arrange(desc(notclear_rate))
+```
+
+
+#STATEWIDE SUMMARY - BY CRIME TYPE
+
+```{r}
+#get a statewide summary for each crime type
+
+statewide <- crimes_allyrs %>%
+  group_by(crimetype)%>%
+  summarise(unf_a=sum(unf), act_a=sum(act), clear_a=sum(clear), report_a=sum(report), notclear= sum(notcleared))%>%
+  mutate(notclearrt = (notclear/act_a)*100)%>%
+  arrange(desc(notclearrt))
+
+print(statewide)
+```
+```{r}
+
+#set the order of the bars (the crime types) based on the value field
+statewide$crimetype <- factor(statewide$crimetype, levels = statewide$crimetype[order(statewide$notclearrt)])
+
+#create a chart showing statewide "not cleared" rates for each crime type (all years)
+state_chart1 <- ggplot(statewide, aes(x=crimetype, y=notclearrt))+
+  geom_bar(stat = "identity", color = "white") +
+  coord_flip() +
+  geom_text(
+    aes(label = round(notclearrt,0), hjust=1),
+    position = "identity",
+    vjust = 0)+
+  labs(title = "Statewide-Percent of actual cases not cleared", 
+       subtitle = "Source: Bureau of Criminal Apprehension",
+       caption = "Star Tribune graphic by MaryJo Webster",
+       x="Crime type",
+       y="Percent cases not cleared")
+  
+plot(state_chart1) 
+```
+
+
+MINNEAPOLIS - BY CRIME TYPE
+```{r}
+#minneapolis- not cleared rates for each crime type (across all years)
+
+crimes_allyrs %>%
+  filter(AgencyLongName=="Minneapolis Police Dept")%>%
+  select(crimetype, notclear_rate, nothing_rate)%>%
+  arrange(desc(nothing_rate))
+```
+```{r}
+mpls_chart_data <- crimes_allyrs %>%
+  filter(AgencyLongName=="Minneapolis Police Dept")%>%
+  select(crimetype, notclear_rate, nothing_rate)%>%
+  arrange(desc(nothing_rate))
+
+#set the order of the bars (the crime types) based on the value field
+mpls_chart_data$crimetype <- factor(mpls_chart_data$crimetype, levels = mpls_chart_data$crimetype[order(mpls_chart_data$notclear_rate)])
+
+#create a chart for Minneapolis
+mpls_chart1 <- ggplot(mpls_chart_data, aes(x=crimetype, y=notclear_rate))+
+  geom_bar(stat = "identity", color = "white") +
+  coord_flip() +
+  geom_text(
+    aes(label = round(notclear_rate,0), hjust=1),
+    position = "identity",
+    vjust = 0)+
+  labs(title = "Minneapolis-Percent of actual cases not cleared", 
+       subtitle = "Source: Bureau of Criminal Apprehension",
+       caption = "Star Tribune graphic by MaryJo Webster",
+       x="Crime type",
+       y="Percent cases not cleared")
+  
+plot(mpls_chart1) 
+```
+
+
+ST PAUL - BY CRIME TYPE
+```{r}
+
+#st paul
+crimes_allyrs %>%
+  filter(AgencyLongName=="St Paul Police Dept")%>%
+  select(crimetype, notclear_rate, nothing_rate)%>%
+  arrange(desc(nothing_rate))
+```
+
+```{r}
+stpaul_chart_data <- crimes_allyrs %>%
+  filter(AgencyLongName=="St Paul Police Dept")%>%
+  select(crimetype, notclear_rate, nothing_rate)%>%
+  arrange(desc(nothing_rate))
+
+#set the order of the bars (the crime types) based on the value field
+stpaul_chart_data$crimetype <- factor(stpaul_chart_data$crimetype, levels = stpaul_chart_data$crimetype[order(stpaul_chart_data$notclear_rate)])
+
+
+stpaul_chart1 <- ggplot(stpaul_chart_data, aes(x=crimetype, y=notclear_rate))+
+  geom_bar(stat = "identity", color = "white") +
+  coord_flip() +
+  geom_text(
+    aes(label = round(notclear_rate,0), hjust=1),
+    position = "identity",
+    vjust = 0)+
+  labs(title = "St Paul - Percent of actual cases not cleared", 
+       subtitle = "Source: Bureau of Criminal Apprehension",
+       caption = "Star Tribune graphic by MaryJo Webster",
+       x="Crime type",
+       y="Percent cases not cleared")
+  
+plot(stpaul_chart1) 
+```
+TOP AGENCIES BY REPORTED RAPES, ACROSS ALL YEARS
+```{r}
+#the top agencies, by number of reported rapes, across all years
+crimes_allyrs %>% 
+  filter(crimetype=="Rape")%>%
+  select(AgencyLongName, report, act, clear, unf)%>% 
+  arrange(desc(report))
+  
+```
+AVERAGE NUMBER OF RAPES REPORTED PER YEAR
+```{r}
+#average number of rapes reported per year
+crimes%>%
+  filter(crimetype=="Rape")%>%
+  group_by(AgencyLongName)%>%
+  summarise(avg=mean(actual))%>%
+  arrange(desc(avg))
+```
+
+TOTAL RAPES REPORTED IN 2016, BY AGENCY
+
+```{r}
+#total number of rapes reported in 2016, by agency
+crimes %>%
+  filter(crimetype=="Rape", ReportingYear=="2016")%>%
+  select(AgencyLongName, ReportingYear, reported)%>%
+  arrange(desc(reported))
+```
+TOTAL CRIMES, ALL YEARS (NOT INCLUDING UNFOUNDED)
+```{r}
+#total number of actual cases by crime type (all years)
+crimes_allyrs%>%
+  group_by(crimetype)%>%
+  summarise(sum=sum(act)) %>% 
+  arrange(desc(sum))
+```
+
+```{r}
+#total number of rapes reported in 2016 (and deemed actual)
+crimes%>%
+  filter(crimetype=="Rape", ReportingYear=="2016")%>%
+  summarise(sum=sum(actual))
+```
+
+
+```{r}
+crimes%>%
+  filter(crimetype=="Rape")%>%
+  group_by(ReportingYear) %>% 
+  summarise(sum=sum(actual))
+```
+
+
+
+```{r}
+crimes%>%filter(ReportingYear=="2016")%>%group_by(crimetype)%>%summarise(rept=sum(actual)) %>% arrange(desc(rept))
+```
+```{r}
+clear_rates <- crimes%>%filter(ReportingYear=="2016")%>%group_by(crimetype)%>%summarise(cleared=sum(cleared), rept=sum(actual))
+write.csv(clear_rates, "clear_rates_mn.csv")
+
+clear_rates_15  <- crimes%>%filter(ReportingYear=="2015")%>%group_by(crimetype)%>%summarise(cleared=sum(cleared), rept=sum(actual))
+write.csv(clear_rates_15, "clear_rates_mn_15.csv")
+```
+```{r}
+rape_statewide_rates <- crimes%>%filter(crimetype=="Rape")%>%group_by(ReportingYear)%>%summarise(unf=sum(unfounded), act=sum(actual), clr=sum(cleared), rpt=sum(reported))
+write.csv(rape_statewide_rates, "rape_statewide_rate.csv")
+```
