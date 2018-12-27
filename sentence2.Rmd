@@ -1,0 +1,395 @@
+---
+title: "Rape project 2018 - Sentencing data analysis"
+subtitle: "Internal only"
+author: "MaryJo Webster"
+date:  "Last updated: `r Sys.Date()`"
+output:
+  html_document: 
+    toc: true
+    to_depth: 1
+    toc_float: true
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+```{r}
+# load_libraries ----------------------------------------------------------
+
+library(readr) #importing csv files
+library(dplyr) #general analysis 
+library(ggplot2) #making charts
+library(lubridate) #date functions
+library(reshape2) #use this for melt function to create one record for each team
+library(tidyr)
+library(janitor) #use this for doing crosstabs
+library(scales) #needed for stacked bar chart axis labels
+library(knitr) #needed for making tables in markdown page
+#library(car)
+library(aws.s3)
+library(htmltools)#this is needed for Rstudio to display kable and other html code
+library(rmarkdown)
+library(readxl)
+library(DT) #needed for making  searchable sortable data tble
+library(kableExtra)
+library(ggthemes)
+library(waffle)
+library(foreign)
+```
+
+
+
+```{r}
+
+#Data source: Minnesota Sentencing Guidelines Commission
+#analyst Anne Wall provided me the SPSS files that she works with
+#typically when you request this data, you'll get Excel
+#these records are all cases that were sentenced under the current sex offender grid
+
+
+#Import the 2008 to 2016 data file
+
+CSC_2008_2016 =  read.spss("AddTPsex 2008_20016 (002).sav", to.data.frame=TRUE)
+
+#This winnows it down to only the fields that match with the 2017 file
+#includes some renaming
+CSC_2008_2016 <-  CSC_2008_2016 %>% 
+  select(sentyear, county, dcnum, count, sex, race, ethnic, statute, offense=Offense,
+         doff, severity, attempt, conspir, dngwpn, subwpn, subsex, typecust, cust, tajud, 
+         tgross, tweight, histall, history, tfelony, presumpt, time, dconv, dsent, plea,
+         schap, ssection, ssubd, moc, prison, aggsentc, confine, stayexec, impose, staylnth,
+         lifer, jail, totinc, inctype, condconf, typeprob, cnscurnt, cnsprior, consec, dispdep,
+         durdep, cnsdep, reason1, reason2, reason3, reason4, preason1, preason2, preason3,
+         moc1, moc2, moc3, moc4, moc5, ageoff, agesent, agestatus=AgeStatus, agecat=Agecat,
+         region, district, patsex, career, danger, sexoff, pagree, request, condrel,
+         condrelperiod, presumptlife, presumptlifeid, lifeminmonths, eligsexgrid=EligSexg,
+         convstat, offense_title=Offense_Title, tpsex=TPSex)
+
+
+#Import the 2017 data file
+CSC_2017 =  read.spss("CSC1thr5_2017.sav", to.data.frame=TRUE) %>% 
+  mutate(chargeid='NA')
+
+#This winnows it down to only the fields that match with the older data file
+#includes some renaming
+CSC_2017 <-  CSC_2017 %>% 
+  select(sentyear, county, dcnum, count, sex, race, ethnic, statute, offense=Offense,
+         doff, severity, attempt, conspir, dngwpn, subwpn, subsex, typecust, cust, tajud, 
+         tgross, tweight, histall, history=History, tfelony=TFelony, presumpt, time, dconv, dsent, plea,
+         schap, ssection, ssubd, moc, prison=Prison, aggsentc, confine, stayexec, impose, staylnth,
+         lifer, jail, totinc=Totinc, inctype=Inctype, condconf, typeprob, cnscurnt, cnsprior, consec=Consec, dispdep,
+         durdep=DurDep, cnsdep, reason1, reason2, reason3, reason4, preason1, preason2, preason3,
+         moc1, moc2, moc3, moc4, moc5, ageoff, agesent, agestatus=AgeStatus, agecat=Agecat,
+         region=Region, district=District, patsex=Patsex, career=Career, danger=Danger, sexoff=Sexoff, pagree=Pagree, request=Request, condrel,
+         condrelperiod, presumptlife, presumptlifeid, lifeminmonths, eligsexgrid=Eligsexg,
+         convstat, offense_title=Offense_Title, tpsex)
+
+
+#append the two files
+CSC_sentences <-  rbind(CSC_2008_2016, CSC_2017)
+
+
+#create casetype column that identifies relationship between victim and assailant
+CSC_sentences <-  CSC_sentences %>% 
+  mutate(casetype=case_when(moc4=='7' | moc4=='1'~'Acquaintance/Partner/Spouse', 
+                            moc4=='8'~'Stranger', 
+                            moc4=='2' | moc4=='3' | moc4=='4'~'Family',
+                            moc4=='5' | moc4=='6' | moc4=='9' | moc4=='A'| moc4=='B'| 
+                              moc4=='C'| moc4=='D'| moc4=='E'~'Person of authority',
+                            moc4=='0'~'Unknown',
+                            TRUE~'Uncategorized'),
+         victim_age = case_when(moc5=='5' | moc5=='6' | moc5=='7' | moc5=='8'~'16 & over', moc5=='9' | moc5=='0'~'unknown', moc5=='1' | moc5=='2'~'Under 13', moc5=='3' | moc5=='4'~'13-15 years'))
+         
+         
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+
+#do recoding to convert "statute" field into statute1, statute2
+#statute 1 buckets them by CSC1, CSC2, etc.
+#statute 2 buckets them by the type of case (statutory, force, authority figure)
+
+CSC_sentences$statute1[CSC_sentences$statute=='609342110']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342120']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342130']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342140']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342151']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342152']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342161']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342162']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342170']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342181']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342182']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609342183']<-'CSC1'
+CSC_sentences$statute1[CSC_sentences$statute=='609343110']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343120']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343170']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343100']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343130']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343140']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343151']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343152']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343161']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343162']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343181']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343182']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609343183']<-'CSC2'
+CSC_sentences$statute1[CSC_sentences$statute=='609344100']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344110']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344120']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344150']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344160']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344122']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344130']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344140']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344171']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344172']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344173']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344180']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344190']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344010']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344011']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344012']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344013']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344014']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609344015']<-'CSC3'
+CSC_sentences$statute1[CSC_sentences$statute=='609345100']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345110']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345120']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345150']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345160']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345130']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345140']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345171']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345172']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345173']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345180']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345190']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345010']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345011']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345012']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345013']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345014']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345015']<-'CSC4'
+CSC_sentences$statute1[CSC_sentences$statute=='609345113']<-'CSC5'
+CSC_sentences$statute1[CSC_sentences$statute=='609345300']<-'CSC5'
+
+
+
+
+CSC_sentences$statute2[CSC_sentences$statute=='609342110']<-'Under 13'
+CSC_sentences$statute2[CSC_sentences$statute=='609342120']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609342130']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342140']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342151']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342152']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342161']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342162']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609342170']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609342181']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609342182']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609342183']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609343110']<-'Under 13'
+CSC_sentences$statute2[CSC_sentences$statute=='609343120']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609343170']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609343100']<-'n/a'
+CSC_sentences$statute2[CSC_sentences$statute=='609343130']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343140']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343151']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343152']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343161']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343162']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609343181']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609343182']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609343183']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609344100']<-'n/a'
+CSC_sentences$statute2[CSC_sentences$statute=='609344110']<-'Under 13'
+CSC_sentences$statute2[CSC_sentences$statute=='609344120']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609344150']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609344160']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609344122']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609344130']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609344140']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609344171']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609344172']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609344173']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609344180']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344190']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344010']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344011']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344012']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344013']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344014']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609344015']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345100']<-'n/a'
+CSC_sentences$statute2[CSC_sentences$statute=='609345110']<-'Under 13'
+CSC_sentences$statute2[CSC_sentences$statute=='609345120']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609345150']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609345160']<-'Statutory'
+CSC_sentences$statute2[CSC_sentences$statute=='609345130']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609345140']<-'Force/Inc'
+CSC_sentences$statute2[CSC_sentences$statute=='609345171']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609345172']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609345173']<-'Statutory and Force/Inc/Multiple Acts'
+CSC_sentences$statute2[CSC_sentences$statute=='609345180']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345190']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345010']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345011']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345012']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345013']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345014']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345015']<-'Authority Figure'
+CSC_sentences$statute2[CSC_sentences$statute=='609345113']<-'n/a'
+CSC_sentences$statute2[CSC_sentences$statute=='609345300']<-'n/a'
+
+
+#this appears to be a miscoded cases in the statute field. I looked at ssubd to decide how to code this
+CSC_sentences$statute2[CSC_sentences$statute=='609342150']<-'Force/Inc'
+CSC_sentences$statute1[CSC_sentences$statute=='609342150']<-'CSC1'
+
+
+
+
+#this adds a field called "include_case" that allows us to easily ignore the Under age 13 victim cases in the subsequent analysis
+CSC_sentences <- CSC_sentences %>% mutate(include_case=
+                                              case_when(statute2=='Under 13'~'no',TRUE~'yes'))
+
+
+
+
+
+
+
+```
+
+
+
+
+#Breakdown of cases by buckets
+
+```{r}
+CSC_sentences %>% 
+     filter(include_case=='yes') %>% 
+   tabyl(statute1, statute2) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+#Breakdown by relationship
+
+```{r}
+CSC_sentences %>% filter(include_case=='yes', presumpt=='Commit') %>% 
+     tabyl(casetype, inctype) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+  
+```
+
+
+#Case type by presumptive sentence
+
+```{r}
+CSC_sentences %>% filter(include_case=='yes') %>% 
+       tabyl(statute2, presumpt) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+#Disp Departures for force cases with presumed prison
+```{r}
+CSC_sentences %>% filter(include_case=='yes', statute2=='Force/Inc', presumpt=='Commit') %>% 
+       tabyl(casetype, dispdep) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+#Durational departures on force cases
+
+
+```{r}
+CSC_sentences %>% 
+  filter(include_case=='yes', statute2=='Force/Inc') %>% 
+   tabyl(casetype, durdep) %>% 
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>% 
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+
+#Prior sex crime convictions
+```{r}
+CSC_sentences %>% filter(include_case=='yes') %>% group_by(tpsex) %>% summarise(count=n())
+```
+
+
+
+#Export
+```{r}
+
+#This exports the key fields we used in the analysis
+#Remaining work was done in Excel
+summary_export <- CSC_sentences %>% 
+   filter(include_case=='yes') %>% 
+  group_by(statute1, statute2, inctype, casetype, severity, history, presumpt) %>% summarise(count=n())
+
+write.csv(summary_export, "sentencing_summary.csv",row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
