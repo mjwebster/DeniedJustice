@@ -1,13 +1,15 @@
 # Denied Justice
 
 
+# About this project
+
 
 
 
 # Scripts:
 --<strong>load_clean_data.R</strong> --  This is a script that pulls in the csv file (downloaded from Airtable) and does a long series of cleanups and adding fields. Need to run this before trying to work with any of the RMarkdown pages
 
-#RMarkdown pages:
+# RMarkdown pages:
 The following markdown pages contain the analyses used.
 
 --<strong>rape2018.rmd</strong> -- this is the weekly analysis page that was the first thing I built. Think of this as a sort of working document where I tried out various theories, mostly using cross tabulations. You'll see a lot of crossover between this and the subsequent files.
@@ -42,6 +44,11 @@ The following markdown pages contain the analyses used.
 
 # Sentencing:
 See the file called "README_sentencing_data.txt" for details
+
+
+# How the data was built
+
+See also: https://source.opennews.org/articles/how-we-built-database-thousands-police-reports/
 
 
 
