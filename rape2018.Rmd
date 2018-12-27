@@ -12,7 +12,9 @@ output:
     
 
 
-#Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#This file contains the bulk of the analysis work from Denied Justice
+#However, the key findings that were used in publication are most easily found in highlights.rmd
+
 
 ---
 
@@ -26,7 +28,7 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE)
 ```
 
 ```{r, code=readLines("load_clean_data.R"), echo=FALSE, warning=FALSE, message=FALSE}
-
+#this is needed for loading data
 ```
 
 
@@ -42,15 +44,7 @@ Other pages:
 
 <a href="http://strib-data-internal.s3-us-west-1.amazonaws.com/projects/rape/liquor.html">Analysis of cases where victim was intoxicated</a>
 
-
-<a href="http://strib-data-internal.s3-us-west-1.amazonaws.com/projects/rape/victiminvolve.html">Victim involvement analysis</a>
-
-
-<a href="http://strib-data-public.s3-us-west-1.amazonaws.com/projects/rape/minneapolis.html">Minneapolis analysis</a>
-
-<a href="http://strib-data-public.s3-us-west-1.amazonaws.com/projects/rape/stpaul.html">St. Paul analysis</a>
-
-<a href="http://strib-data-internal.s3-us-west-1.amazonaws.com/projects/rape/threebuckets.html">Alternative analysis using 3 buckets</a>
+http://strib-data-public.s3-us-west-1.amazonaws.com/projects/rape/top4.html
 
 
 
@@ -143,11 +137,14 @@ rape%>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
-
+#Acquaintance vs STranger
 ```{r}
-rape %>% filter(conviction=='Yes') %>% group_by(casetype) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
+rape %>% filter(conviction=='Yes') %>% group_by(casetype) %>% summarise(count=n()) %>% mutate(pct=count/sum(count)) %>% 
+    knitr::kable("html") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
+##Conviction by case type
 
 ```{r}
 rape%>% tabyl(casetype , conviction)%>%
@@ -245,6 +242,7 @@ rape%>%tabyl(department_collapse, chargesfiled)%>%
    kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
+Charges filed by case type
 
 ```{r}
 rape%>%tabyl(casetype, chargesfiled)%>%
@@ -260,7 +258,7 @@ rape%>%tabyl(casetype, chargesfiled)%>%
 
 
 
-## Victim involvement rates 
+## Victim involvement rates <br>
 Percentage of cases where victim drop outs, by department
 
 ```{r victimimvolve,echo=FALSE}
@@ -303,7 +301,7 @@ plot(convict_chart)
 
 
 
-## Conviction by case type:
+Conviction by case type:
 
 ```{r convictcasetype, echo=FALSE}
 convict_case_type <- rape %>% tabyl(casetype, conviction) %>% 
@@ -328,7 +326,7 @@ plot(convict_casetype_chart)
 
 
 
-##Conviction By Department
+Conviction By Department
 Percentage of cases resulting in conviction
 
 ```{r convictiondept, echo=FALSE}
@@ -346,13 +344,11 @@ dept_conviction_rate %>% filter(conviction=="Yes") %>%
 ```
 
 
-## Sent for prosecution by department
+# Sent for prosecution by department
 
 
 ```{r prosecutebydept, echo=FALSE}
 
-#rape$sentforprosecution[is.na(rape$sentforprosecution)] <- "N/A"
-#rape$sentforprosecution <- factor(rape$sentforprosecution, levels=c("Yes", "No", "N/A"))
 
 rape%>%tabyl(department_collapse, sentforprosecution)%>%
     adorn_totals("row") %>%
@@ -396,19 +392,6 @@ victim_int_pct %>% select(victiminterviewed, count, pct_d) %>% kable("html") %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #Cases investigated, not sent for prosecution
 Victim involvement by police actions
 
@@ -445,7 +428,7 @@ Only cases with no delay in reporting<br>
 Was all potential evidence collected?
 
 ```{r}
-rape  %>%filter(delay=="no delay", group=="Investigated/Not sent for Prosecution") %>%  tabyl(victiminvolve,potentialevidence_notcollected)%>%
+rape  %>%filter(delay=="no delay", group=="Investigated/Not sent for Prosecution") %>%  tabyl(victiminvolve,evidence2)%>%
   adorn_totals("row") %>% 
   adorn_percentages("row") %>% 
   adorn_pct_formatting(rounding = "half up", digits=0) %>% 
@@ -600,19 +583,7 @@ rape %>% filter(`repeat`!="NA") %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
-
-```{r}
-rape %>% filter(`repeat`!="NA") %>%
-  tabyl(sentforprosecution, victiminvolve)%>%
-    adorn_totals("row") %>%
-  adorn_percentages("row") %>%
-  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
-  adorn_ns() %>% 
-  adorn_title("top")%>%
-  knitr::kable("html") %>% 
- kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
-```
-
+Repeat offender cases - victim interview
 
 ```{r}
 rape %>% filter(`repeat`!="NA") %>%
@@ -626,10 +597,11 @@ rape %>% filter(`repeat`!="NA") %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
+Repeat offender cases - evidence collection
 
 ```{r}
 rape %>% filter(`repeat`!="NA") %>%
-  tabyl(department_collapse, potentialevidence_notcollected)%>%
+  tabyl(department_collapse, evidence2)%>%
     adorn_totals("row") %>%
   adorn_percentages("row") %>%
   adorn_pct_formatting(rounding = "half up", digits = 0) %>%
@@ -639,11 +611,11 @@ rape %>% filter(`repeat`!="NA") %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
-
+Repeat offender cases - witness interviews
 
 ```{r}
 rape %>% filter(`repeat`!="NA") %>%
-  tabyl(department_collapse, potentialwitnesses_notinterviewed)%>%
+  tabyl(department_collapse, witness2)%>%
     adorn_totals("row") %>%
   adorn_percentages("row") %>%
   adorn_pct_formatting(rounding = "half up", digits = 0) %>%
@@ -653,18 +625,7 @@ rape %>% filter(`repeat`!="NA") %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
-
-```{r}
-rape %>% filter(`repeat`!="NA", sentforprosecution=="No") %>%
-  tabyl(victiminvolve, potentialwitnesses_notinterviewed)%>%
-    adorn_totals("row") %>%
-  adorn_percentages("row") %>%
-  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
-  adorn_ns() %>% 
-  adorn_title("top")%>%
-  knitr::kable("html") %>% 
- kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
-```
+Repeat offender cases - sent for prosecution
 
 
 ```{r}
@@ -680,21 +641,11 @@ rape %>% filter(`repeat`!="NA") %>%
 ```
 
 
-```{r}
-rape %>% filter(`repeat`!="NA") %>%
-  tabyl(sentforprosecution, investigatorsassigned)%>%
-    adorn_totals("row") %>%
-  adorn_percentages("row") %>%
-  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
-  adorn_ns() %>% 
-  adorn_title("top")%>%
-  knitr::kable("html") %>% 
- kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
-```
 
 ```{r}
-rape %>% filter(`repeat`!="NA", investigatorsassigned=="No") %>%
-  select(`repeat`,department, conviction, sentforprosecution, suspectinterviewed)
+
+#repeat offender cases not assigned to an investigator
+#rape %>% filter(`repeat`!="NA", investigatorsassigned=="No") %>% select(`repeat`,department, conviction, sentforprosecution, suspectinterviewed)
 ```
 
 
@@ -743,7 +694,9 @@ Only cases involving named suspect and cooperative victim
 ```{r}
 rape  %>%
   filter(suspectflag=='Named suspect', victiminvolve=='Cooperated throughout') %>% 
-  group_by(pretextcall) %>% summarise(count=n()) %>% 	mutate(pct = (count/sum(count))) 
+  group_by(pretextcall) %>% summarise(count=n()) %>% 	mutate(pct = (count/sum(count))) %>% 
+    knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
 
@@ -763,31 +716,18 @@ rape %>% tabyl(department, investigatorsassigned) %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
-#Named suspects
-
-```{r}
-
-
-rape <- rape %>% mutate(names2= case_when(grepl(",", suspectnames)~ "Named suspect",
-                                               grepl("unknown", suspectnames)~ "None",
-                                               grepl("redacted", suspectnames)~"redacted",
-                                               grepl("Unknown", suspectnames)~"None",
-                                               grepl("Redacted", suspectnames)~"redacted",
-                                                        TRUE ~ "Partial name"
-                        ))
-
-
-rape %>% group_by(names2) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
-```
-
 #Male victims
 ```{r}
-rape %>% group_by(malevictim) %>% summarise(count=n())%>% mutate(pct=count/sum(count))
+rape %>% group_by(malevictim) %>% summarise(count=n())%>% mutate(pct=count/sum(count)) %>% 
+    knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
 #Rape exams
 ```{r}
-rape %>% group_by(rapeexam, testingresults) %>% summarise(count=n())
+rape %>% group_by(rapeexam, testingresults) %>% summarise(count=n()) %>% 
+    knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
 
@@ -796,7 +736,9 @@ rape %>% group_by(rapeexam, testingresults) %>% summarise(count=n())
 
 ```{r}
 
-rape %>% group_by(physicalevidence) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
+rape %>% group_by(physicalevidence) %>% summarise(count=n()) %>% mutate(pct=count/sum(count)) %>% 
+    knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
 #Investigator assigned by physical evidence
@@ -813,6 +755,7 @@ rape %>% tabyl(physicalevidence, investigatorsassigned) %>%
  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
+Minneapolis - physical evidence and investigator assigned
 ```{r}
 rape %>% filter(department=="Minneapolis") %>% tabyl(physicalevidence, investigatorsassigned) %>% 
     adorn_totals("row") %>%
@@ -828,40 +771,19 @@ rape %>% filter(department=="Minneapolis") %>% tabyl(physicalevidence, investiga
 
 
 ```{r}
-rape %>% filter(police_scene!='Does not apply') %>% group_by(police_scene) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
-```
-
-
-
-#sentence on conviction cases
-
-```{r}
-rape %>% filter(conviction=='Yes') %>% group_by(sentence) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
-```
-
-
-```{r}
-rape %>% group_by(conviction) %>% summarise(count=n())
+rape %>% filter(police_scene!='Does not apply') %>% group_by(police_scene) %>% summarise(count=n()) %>% mutate(pct=count/sum(count)) %>% 
+    knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
 ```
 
 
 
 
-```{r}
-rape %>% filter(conviction=='Yes') %>% group_by(victim_age) %>% summarise(count=n())
-```
-
-```{r}
-convictions_teenvictims <-  rape %>% filter(conviction=='Yes', victim_age=='13-17') %>% select(casenumber, department, incidentdate, suspectnames,
-                                                                                               suspectDOB, county, sentence, casenotes)
-
-write.csv(convictions_teenvictims, "convictions_teenvictms.csv", row.names=FALSE)
-```
 
 
-```{r}
-rape %>% group_by(conviction) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
-```
+
+
+
 
 
 
