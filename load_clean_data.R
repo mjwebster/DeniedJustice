@@ -46,7 +46,7 @@ rape_import <-  read_csv("RapeProject2018-MaryJoExportView.csv", col_names=FALSE
                                         X28='c',X29='c',X30='c',X31='c',X32='c',X33='c',X34='c',X35='c',X36='c',X37='c',X38='c',X39='c',
                                         X40='c',X41='c',X42='c',X43='_',X44='_',X45='_',X46='_',X47='_',X48='_',X49='c',X50='c',X51='_',
                                         X52='_',X53='c',X54='c',X55='_',X56='c',X57='c',X58='c',X59='c',X60='c',X61='c',
-                                        X62='c', x63='c', X64='c' ,x65='c'),   trim_ws=TRUE)
+                                        X62='c', X63='c', X64='c' ,X65='c'),   trim_ws=TRUE)
 
 
 
@@ -70,7 +70,8 @@ colnames(rape_import) <- c("timestamp","department","casenumber","vulnerable","c
 
 #identify the records that are tagged as unfounded and create new variable
 
-rape_import <- rape_import %>% mutate(unfounded=ifelse(grepl("unfounded", closurecode), "unfounded", "NA")) 
+rape_import <- rape_import %>%
+  mutate(unfounded=ifelse(grepl("unfounded", closurecode), "unfounded", "NA")) 
 
 
 ## WINNOW OUT RECORDS WE DON'T WANT TO INCLUDE
@@ -87,6 +88,8 @@ rape_import <- rape_import %>% mutate(unfounded=ifelse(grepl("unfounded", closur
 rape <- rape_import %>%
   mutate(yr=year(datereported),diff=difftime(datereported, incidentdate, units=c("days"))) %>%
   filter(is.na(opencase), yr>=2015, unfounded=="NA")
+
+#rape_import %>% group_by(year(datereported)) %>% summarise(count=n())
 
 
 #create new variable that collapses departments
@@ -182,7 +185,8 @@ rape$suspect_interview_combine <- factor(rape$suspect_interview_combine, levels=
 
 
 #Create a field that creates the top 4 bucket for departments
-rape <-  rape %>% mutate(top4=case_when(department=="Brooklyn Park" | department=="Minneapolis" | department=="St. Paul" | department=="Duluth"~"Top 4", TRUE~"All others"))
+rape <-  rape %>%
+  mutate(top4=case_when(department=="Anoka" | department=="Minneapolis" | department=="St. Paul" | department=="Duluth"~"Top 4", TRUE~"All others"))
 
 
 #Create a field that puts departments in buckets
@@ -281,7 +285,6 @@ rape <-  rape %>% mutate(rapeexam2 = case_when(rapeexam=='No' | rapeexam=='victi
 
 
 #write.csv(rape, "rape_analysiscases.csv", row.names = FALSE)
-
 
 
 
