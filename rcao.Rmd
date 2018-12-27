@@ -1,0 +1,296 @@
+---
+title: "Ramsey County Attorney's office data"
+author: "MaryJo Webster"
+date:  "Last updated: `r Sys.Date()`"
+output:
+  html_document: 
+    #toc: true
+    #to_depth: 1
+    #toc_float: true
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, cache=FALSE, fig.height = 3, fig.width = 8)
+```
+
+```{r}
+library(readr) #importing csv files
+library(dplyr) #general analysis 
+library(ggplot2) #making charts
+library(lubridate) #date functions
+library(reshape2) #use this for melt function to create one record for each team
+library(tidyr)
+library(janitor) #use this for doing crosstabs
+library(scales) #needed for stacked bar chart axis labels
+library(knitr) #needed for making tables in markdown page
+#library(car)
+library(aws.s3)
+library(htmltools)#this is needed for Rstudio to display kable and other html code
+library(rmarkdown)
+library(readxl)
+library(DT) #needed for making  searchable sortable data tble
+library(kableExtra)
+library(ggthemes)
+library(waffle)
+
+
+
+#Data source: Ramsey county attorney
+#This is data from that agency's own effort to do a similar study of sex assault cases
+#They reviewed a smaller number of cases, but collected far more data points
+#This data is slightly redacted -- such as the date of birth of the victim
+#there is a record layout in PDF saved along with the data
+
+
+#Data is stored in a zip in github
+rcao <-  read_csv("rcao_import.csv")
+
+
+
+```
+```{r}
+rcao %>% group_by(victimrace) %>% summarise(count=n())
+```
+
+```{r}
+rcao <-  rcao %>% mutate(victim_race2 = case_when(is.na(victimrace)~'N/A', victimrace=='White or Caucasian'~'White', TRUE~'Person of color'))
+```
+
+```{r}
+rcao %>% group_by(victim_race2) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
+```
+
+```{r}
+rcao %>% group_by(outcome) %>% summarise(count=n())
+```
+
+```{r}
+rcao <- rcao %>% mutate(outcome2= case_when(is.na(outcome)~'N/A', outcome=='Declined, Declined' | outcome=='Declined'~'Declined', 
+                                            outcome=='Charged'~'Charged', outcome=='Not Referred'~'Not Referred',TRUE~'Other'))
+```
+
+```{r}
+rcao %>% group_by(outcome2) %>% summarise(count=n()) %>% mutate(pct=count/sum(count))
+```
+
+```{r}
+rcao %>%  tabyl(victim_race2, outcome2)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+```{r}
+rcao %>% group_by(category) %>% summarise(count=n())
+```
+
+```{r}
+rcao %>%  tabyl(victim_race2, category)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+```{r}
+rcao %>%  tabyl(victim_race2, requested_victim_witnesses)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+```{r}
+rcao %>% group_by(victim_second_interview_date) %>% summarise(count=n())
+```
+
+```{r}
+rcao <-  rcao %>% mutate(victiminterview = case_when(is.na(victim_second_interview_date)~'No', 
+                                                     victim_second_interview_date=='n/a (refused to leave cell)'~'No',
+                                                     victim_second_interview_date=='first tried 6/25/2014'~'No',
+                                                     victim_second_interview_date=='n/a' | victim_second_interview_date=='unk'~'Unknown',
+                                                     TRUE~'Yes'))
+```
+```{r}
+rcao %>%  tabyl(victim_race2, victiminterview)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+```{r}
+rcao %>% filter(category=='Referred to RCAO') %>% group_by(convicted) %>% summarise(count=n())
+
+names(rcao)
+```
+
+
+```{r}
+rcao %>% group_by(victimdob) %>% summarise(count=n()) %>% arrange(desc(count))
+```
+
+
+
+```{r}
+rcao %>% group_by(victim_association_location) %>% summarise(count=n())  %>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victimrace) %>% summarise(count=n())  %>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(suspect_race) %>% summarise(count=n())  %>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao <-  rcao %>% mutate(suspect_race2= case_when(suspect_race=="White or Caucasian"~"White", is.na(suspect_race)~"Unknown", TRUE~"Person of color"))
+
+rcao %>% group_by(victim_race2, suspect_race2) %>% summarise(count=n())  %>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>% group_by(victim_languageused) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>% group_by(victimgender) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_injuryseverity) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_knewsuspect) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_account_assault_type) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_substanceuse) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_intoxication) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>% group_by(victim_lose_contact) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(victim_lose_contact, victim_requests_no_action) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>% group_by(advocacy_offered) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+
+```{r}
+rcao %>% group_by(secured_scene_collected_evidence) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(corroborate_victim_account) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(perception_investigator_investment) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(requested_victim_witnesses) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(requested_suspect_witnesses) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(requested_initial_disclosure_witness) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(perception_disbelief_victim) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(search_warrant_requested) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+```{r}
+rcao %>% group_by(outcome2, guilty_plea) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>%  tabyl( outcome2, perception_investigator_investment)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("top")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+
+
+```{r}
+rcao %>% group_by(trial) %>% summarise(count=n())%>% mutate(pct=count/sum(count))%>% arrange(desc(pct))
+```
+
+
+```{r}
+rcao %>% tabyl(suspect_race2, outcome2)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("combined")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+```{r}
+rcao %>% tabyl(suspect_race2, outcome)%>%
+    adorn_totals("row") %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(rounding = "half up", digits = 0) %>%
+  adorn_ns() %>%
+  adorn_title("combined")%>%
+  knitr::kable("html") %>% 
+ kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+```
+
+```{r}
+rcao %>% filter(outcome2=="Charged") %>% group_by(suspect_race2, convicted) %>% summarise(count=n())
+```
+
