@@ -1,13 +1,13 @@
-# DeniedJustice
+# Denied Justice
 
 
 
 
 
-Scripts:
---load_clean_data.R --  This is a script that pulls in the csv file (downloaded from Airtable) and does a long series of cleanups and adding fields. Need to run this before trying to work with any of the RMarkdown pages
+#Scripts:
+--<strong>load_clean_data.R</strong> --  This is a script that pulls in the csv file (downloaded from Airtable) and does a long series of cleanups and adding fields. Need to run this before trying to work with any of the RMarkdown pages
 
-RMarkdown pages:
+#RMarkdown pages:
 The following markdown pages contain the analyses used.
 
 --rape2018.rmd -- this is the weekly analysis page that was the first thing I built. Think of this as a sort of working document where I tried out various theories, mostly using cross tabulations. You'll see a lot of crossover between this and the subsequent files.
@@ -30,7 +30,7 @@ The following markdown pages contain the analyses used.
 
 --regression.rmd -- This is my attempt at a regression analysis on the data, which was never put to use. See README_regression for more details.
 
-Data:
+#Data:
 --RapeProject2018-MaryJoExportView -- this is the main data file exported from AirTable; a backup of this has been imported to the MySQL server in the "crime" database.
 
 --fields.xlsx -- this is a record layout of the Airtable file, including some of the info I used for building the import script
@@ -40,7 +40,7 @@ Data:
 --ramsey_county_attorney_data.zip -- this is data and record layout from Ramsey County ATtorney's office
 
 
-Sentencing:
+#Sentencing:
 See the file called "README_sentencing_data.txt" for details
 
 
