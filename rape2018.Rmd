@@ -321,27 +321,45 @@ convict_casetype_chart <- ggplot(convict_case_type, aes(x = casetype, y = pct)) 
 plot(convict_casetype_chart)
 
 ```
-
-
-
-
-
-Conviction By Department
+Conviction By Department<br>
 Percentage of cases resulting in conviction
+```{r}
+dept_conviction_rate2 <-   rape %>% 
+  group_by(department, conviction) %>% summarise(count=n())
 
-```{r convictiondept, echo=FALSE}
+dcast_convict <-  dcast(dept_conviction_rate2, department ~ conviction) %>% clean_names()
 
-dept_conviction_rate <-   rape %>% group_by(department, conviction) %>% summarise(count=n()) %>% mutate(pct=count/sum(count)) %>% mutate(total_cases=sum(count)) %>% arrange(desc(pct))
+dcast_convict$yes[is.na(dcast_convict$yes)] <-  0
+dcast_convict$no[is.na(dcast_convict$no)] <-  0
+dcast_convict$case_still_pending[is.na(dcast_convict$case_still_pending)] <-  0
+dcast_convict$cannot_determine[is.na(dcast_convict$cannot_determine)] <-  0
+dcast_convict$na[is.na(dcast_convict$na)] <-  0
 
-dept_conviction_rate$pct_d <- percent_format()(dept_conviction_rate$pct)
+dcast_convict <-  dcast_convict %>% 
+  mutate(total= yes+no+case_still_pending+cannot_determine+na,
+         pct = yes/total)
 
-dept_conviction_rate %>% filter(conviction=="Yes") %>% 
-  select(department, pct_d, count, total_cases) %>% 
-  rename(CasesConvict=count, ConvictRate=pct_d) %>% 
-  kable("html") %>% 
-   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+dcast_convict$pct_d <- percent_format()(dcast_convict$pct)
+
+dcast_convict <-  dcast_convict %>%  filter(department!='U-Minnesota') %>% 
+  mutate(department= case_when(department=='Anoka' ~ 'Anoka County',
+                                                                 department=='Itasca' ~' Itasca County',
+                                                                 TRUE ~ department))
+
+dcast_convict %>% 
+  arrange(desc(pct)) %>% 
+  select(department, convictions=yes, totalcases=total, convict_rate=pct_d) %>% 
+    kable("html") %>% 
+     kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), full_width = F, position="left")
+
+
 
 ```
+
+
+
+
+
 
 
 # Sent for prosecution by department
